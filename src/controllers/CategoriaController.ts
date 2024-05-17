@@ -3,6 +3,7 @@ import { CategoriaDAO } from "../dao/CategoriaDAO";
 import { CategoryBodyValidations } from "../middlewares/CategoryValidations";
 import { Cache } from "../constants/cache";
 import { CacheDelay } from "../middlewares/CacheDelay";
+import { getDeltaTime } from "../utils/Time";
 
 export class CategoriaController extends CategoriaDAO {
 	private router: Router;
@@ -31,7 +32,7 @@ export class CategoriaController extends CategoriaDAO {
 		this.router.get("/get-all", async (req: Request, res: Response) => {
 			try {
 				const cachekey = req.path + req.method
-				if (this.cache[cachekey] && (new Date().getTime() - this.cache[cachekey].time.getTime()) < Cache.cacheLifetime) {
+				if (this.cache[cachekey] && getDeltaTime(this.cache[cachekey].time) < Cache.cacheLifetime) {
 					const data = this.cache[cachekey].data;
 					// from cache
 					setTimeout(() => { // prevent connection rejection
@@ -52,7 +53,7 @@ export class CategoriaController extends CategoriaDAO {
 		this.router.get("/:id", async (req: Request, res: Response) => {
 			try {
 				const cachekey = req.path + req.method
-				if (this.cache[cachekey] && (new Date().getTime() - this.cache[cachekey].time.getTime()) < Cache.cacheLifetime) {
+				if (this.cache[cachekey] && getDeltaTime(this.cache[cachekey].time) < Cache.cacheLifetime) {
 					const data = this.cache[cachekey].data;
 					// from cache
 					setTimeout(() => { // prevent connection rejection
