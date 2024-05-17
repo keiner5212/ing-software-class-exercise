@@ -4,6 +4,7 @@ import { CategoryBodyValidations } from "../middlewares/CategoryValidations";
 import { Cache } from "../constants/cache";
 import { CacheDelay } from "../middlewares/CacheDelay";
 import { getDeltaTime } from "../utils/Time";
+import { controllerDebugger } from "../utils/debugConfig";
 
 export class CategoriaController extends CategoriaDAO {
 	private router: Router;
@@ -12,6 +13,19 @@ export class CategoriaController extends CategoriaDAO {
 	constructor() {
 		super();
 		this.router = Router();
+		this.cacheData()
+		setInterval(() => { this.cacheData() }, Cache.cacheLifetime);
+	}
+
+	private async cacheData() {
+		const data = await CategoriaDAO.getAll();
+		controllerDebugger("updating cache")
+		if (data) {
+			this.cache["/get-allGET"] = {
+				data: data,
+				time: new Date()
+			}
+		}
 	}
 
 	public routes(): Router {
@@ -32,16 +46,11 @@ export class CategoriaController extends CategoriaDAO {
 		this.router.get("/get-all", async (req: Request, res: Response) => {
 			try {
 				const cachekey = req.path + req.method
-				if (this.cache[cachekey] && getDeltaTime(this.cache[cachekey].time) < Cache.cacheLifetime) {
-					const data = this.cache[cachekey].data;
-					// from cache
-					setTimeout(() => { // prevent connection rejection
-						res.status(200).send(data);
-					}, Cache.cache_delay);
-				} else {
-					const data = await CategoriaDAO.getAll();
+				const data = this.cache[cachekey].data;
+				// from cache
+				setTimeout(() => { // prevent connection rejection
 					res.status(200).send(data);
-				}
+				}, Cache.cache_delay);
 			} catch (error: any) {
 				res.status(200).send({
 					message: error.message,
@@ -62,6 +71,12 @@ export class CategoriaController extends CategoriaDAO {
 				} else {
 					const { id } = req.params;
 					const data = await CategoriaDAO.getById(parseInt(id));
+					if (data) {
+						this.cache[cachekey] = {
+							data: data,
+							time: new Date()
+						}
+					}
 					res.status(200).send(data);
 				}
 			} catch (error: any) {

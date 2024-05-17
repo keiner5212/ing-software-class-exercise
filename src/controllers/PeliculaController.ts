@@ -4,6 +4,7 @@ import { Cache } from "../constants/cache";
 import { MovieBodyValidations } from "../middlewares/MovieValidations";
 import { CacheDelay } from "../middlewares/CacheDelay";
 import { getDeltaTime } from "../utils/Time";
+import { controllerDebugger } from "../utils/debugConfig";
 
 export class PeliculaController extends PeliculaDAO {
     private router: Router;
@@ -12,6 +13,19 @@ export class PeliculaController extends PeliculaDAO {
     constructor() {
         super();
         this.router = Router();
+        this.cacheData()
+        setInterval(() => { this.cacheData() }, Cache.cacheLifetime);
+    }
+
+    private async cacheData() {
+        const data = await PeliculaDAO.getAll();
+        controllerDebugger("updating cache")
+        if (data) {
+            this.cache["/get-allGET"] = {
+                data: data,
+                time: new Date()
+            }
+        }
     }
 
     public routes(): Router {
@@ -32,24 +46,11 @@ export class PeliculaController extends PeliculaDAO {
         this.router.get("/get-all", async (req: Request, res: Response) => {
             try {
                 const cachekey = req.path + req.method
-                if (this.cache[cachekey] && getDeltaTime(this.cache[cachekey].time) < Cache.cacheLifetime) {
-                    const data = this.cache[cachekey].data;
-                    // from cache
-                    setTimeout(() => { // prevent connection rejection
-                        res.status(200).send(data);
-                    }, Cache.cache_delay);
-                } else {
-                    const result = await PeliculaDAO.getAll();
-                    if (result && result.length > 0) {
-                        this.cache[cachekey] = {
-                            data: result,
-                            time: new Date()
-                        }
-                    }
-
-                    // from database
-                    res.status(200).send(result);
-                }
+                const data = this.cache[cachekey].data;
+                // from cache
+                setTimeout(() => { // prevent connection rejection
+                    res.status(200).send(data);
+                }, Cache.cache_delay);
             } catch (error: any) {
                 res.status(404).send({
                     message: error.message,
@@ -70,6 +71,12 @@ export class PeliculaController extends PeliculaDAO {
                 } else {
                     const { id } = req.params;
                     const data = await PeliculaDAO.getById(parseInt(id));
+                    if (data) {
+                        this.cache[cachekey] = {
+                            data: data,
+                            time: new Date()
+                        }
+                    }
                     res.status(200).send(data);
                 }
             } catch (error: any) {
