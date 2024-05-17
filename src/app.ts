@@ -3,10 +3,11 @@ import express, { Application, Request, Response } from "express";
 import morgan from "morgan";
 import { CategoriaController } from "./controllers/CategoriaController";
 import { PeliculaController } from "./controllers/PeliculaController";
-
+import { CacheDelay } from "./middlewares/CacheDelay";
 export class App {
 	private app: Application;
 	private prefix = "/api/v1";
+	private numRequest = 0;
 
 
 	constructor() {
@@ -20,15 +21,21 @@ export class App {
 
 	private midlewares() {
 		// MIDDLEWARE
-		this.app.use(morgan("dev"));
 		this.app.use(cors());
 		this.app.use(express.json());
+		morgan.token("date", () => {
+			const date = new Date();
+			return `[${date.getUTCFullYear()}-${date.getUTCMonth()}-${date.getUTCDate()} ${date.getUTCHours()}:${date.getUTCMinutes()}:${date.getUTCSeconds()}.${date.getUTCMilliseconds()}]`;
+		});
+		morgan.token("requests", () => `${++this.numRequest}`);
+		const format = "#:requests\tt::date\tm::method\trt::response-time ms\np::url\ts::status\tb::res[content-length]\n";
+		this.app.use(morgan(format));
 	}
 
 	private generalRoutes() {
 		// ROUTES
-		this.app.get("/", (req: Request, res: Response) => {
-			res.send({
+		this.app.get("/", CacheDelay, (req: Request, res: Response) => {
+			res.json({
 				message: "Welcome to the App",
 				endpoints: {
 					categoria: this.prefix + "/categoria",

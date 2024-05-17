@@ -1,8 +1,12 @@
 import { Request, Response, Router } from "express";
 import { CategoriaDAO } from "../dao/CategoriaDAO";
+import { CategoryBodyValidations } from "../middlewares/CategoryValidations";
+import { Cache } from "../constants/cache";
+import { CacheDelay } from "../middlewares/CacheDelay";
 
 export class CategoriaController extends CategoriaDAO {
 	private router: Router;
+	private cache: { [cachespace: string]: { [data: string]: any, time: Date } } = {}
 
 	constructor() {
 		super();
@@ -11,7 +15,7 @@ export class CategoriaController extends CategoriaDAO {
 
 	public routes(): Router {
 		//routes
-		this.router.get("/", async (req: Request, res: Response) => {
+		this.router.get("/", CacheDelay, async (req: Request, res: Response) => {
 			res.status(200).send({
 				endpoints: {
 					getAll: "GET /get-all: get all categories",
@@ -26,8 +30,17 @@ export class CategoriaController extends CategoriaDAO {
 		//get all
 		this.router.get("/get-all", async (req: Request, res: Response) => {
 			try {
-				const data = await CategoriaDAO.getAll();
-				res.status(200).send(data);
+				const cachekey = req.path + req.method
+				if (this.cache[cachekey] && (new Date().getTime() - this.cache[cachekey].time.getTime()) < Cache.cacheLifetime) {
+					const data = this.cache[cachekey].data;
+					// from cache
+					setTimeout(() => { // prevent connection rejection
+						res.status(200).send(data);
+					}, Cache.cache_delay);
+				} else {
+					const data = await CategoriaDAO.getAll();
+					res.status(200).send(data);
+				}
 			} catch (error: any) {
 				res.status(200).send({
 					message: error.message,
@@ -37,10 +50,19 @@ export class CategoriaController extends CategoriaDAO {
 
 		// get by id
 		this.router.get("/:id", async (req: Request, res: Response) => {
-			const { id } = req.params;
 			try {
-				const data = await CategoriaDAO.getById(parseInt(id));
-				res.status(200).send(data);
+				const cachekey = req.path + req.method
+				if (this.cache[cachekey] && (new Date().getTime() - this.cache[cachekey].time.getTime()) < Cache.cacheLifetime) {
+					const data = this.cache[cachekey].data;
+					// from cache
+					setTimeout(() => { // prevent connection rejection
+						res.status(200).send(data);
+					}, Cache.cache_delay);
+				} else {
+					const { id } = req.params;
+					const data = await CategoriaDAO.getById(parseInt(id));
+					res.status(200).send(data);
+				}
 			} catch (error: any) {
 				res.status(200).send({
 					message: error.message,
@@ -49,9 +71,9 @@ export class CategoriaController extends CategoriaDAO {
 		});
 
 		// add
-		this.router.post("/", async (req: Request, res: Response) => {
-			const { nombre_categoria } = req.body;
+		this.router.post("/", CategoryBodyValidations, async (req: Request, res: Response) => {
 			try {
+				const { nombre_categoria } = req.body;
 				const data = await CategoriaDAO.add(nombre_categoria);
 				res.status(200).send(data);
 			} catch (error: any) {
@@ -62,10 +84,10 @@ export class CategoriaController extends CategoriaDAO {
 		});
 
 		// update
-		this.router.put("/:id", async (req: Request, res: Response) => {
-			const { id } = req.params;
-			const { nombre_categoria } = req.body;
+		this.router.put("/:id", CategoryBodyValidations, async (req: Request, res: Response) => {
 			try {
+				const { id } = req.params;
+				const { nombre_categoria } = req.body;
 				const data = await CategoriaDAO.update(parseInt(id), nombre_categoria);
 				res.status(200).send(data);
 			} catch (error: any) {
@@ -77,8 +99,8 @@ export class CategoriaController extends CategoriaDAO {
 
 		// delete
 		this.router.delete("/:id", async (req: Request, res: Response) => {
-			const { id } = req.params;
 			try {
+				const { id } = req.params;
 				const data = await CategoriaDAO.delete(parseInt(id));
 				res.status(200).send(data);
 			} catch (error: any) {
