@@ -31,7 +31,7 @@ export class App {
 		morgan.token("requests", () => `${++this.numRequest}`);
 		const format = "#:requests\tt::date\tm::method\trt::response-time ms\np::url\ts::status\tb::res[content-length]\n";
 		this.app.use(morgan(format));
-		this.app.use(compression({ threshold: '5000b' }));
+		this.app.use(compression());
 	}
 
 	private generalRoutes() {

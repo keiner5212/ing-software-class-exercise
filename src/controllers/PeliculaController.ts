@@ -9,13 +9,20 @@ import { controllerDebugger } from "../utils/debugConfig";
 export class PeliculaController extends PeliculaDAO {
     private router: Router;
     private cache: { [cachespace: string]: { [data: string]: any, time: Date } } = {}
+    private lastRequest: Date;
 
     constructor() {
         super();
         this.router = Router();
+        this.lastRequest = new Date()
         this.cacheData()
-        setInterval(() => { this.cacheData() }, Cache.cacheLifetime);
+        setInterval(() => {
+            if (getDeltaTime(this.lastRequest) < Cache.cacheSleepTime) { // stop refreshing cache if there's not requests in the last 2h
+                this.cacheData()
+            }
+        }, Cache.cacheLifetime);
     }
+
 
     private async cacheData() {
         const data = await PeliculaDAO.getAll();
@@ -46,6 +53,7 @@ export class PeliculaController extends PeliculaDAO {
         this.router.get("/get-all", async (req: Request, res: Response) => {
             try {
                 const cachekey = req.path + req.method
+                this.lastRequest = new Date()
                 const data = this.cache[cachekey].data;
                 // from cache
                 setTimeout(() => { // prevent connection rejection
