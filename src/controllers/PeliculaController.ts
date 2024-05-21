@@ -1,43 +1,22 @@
 import { Request, Response, Router } from "express";
 import { PeliculaDAO } from "../dao/PeliculaDAO";
-import { Cache } from "../constants/cache";
 import { MovieBodyValidations } from "../middlewares/MovieValidations";
-import { CacheDelay } from "../middlewares/CacheDelay";
-import { getDeltaTime } from "../utils/Time";
-import { controllerDebugger } from "../utils/debugConfig";
+import { CheckCache } from "../middlewares/Cache";
+import { RedisConfig } from "../utils/cache";
+
+const RedisClient = RedisConfig.getInstance().getRedisClient();
 
 export class PeliculaController extends PeliculaDAO {
     private router: Router;
-    private cache: { [cachespace: string]: { [data: string]: any, time: Date } } = {}
-    private lastRequest: Date;
 
     constructor() {
         super();
         this.router = Router();
-        this.lastRequest = new Date()
-        this.cacheData()
-        setInterval(() => {
-            if (getDeltaTime(this.lastRequest) < Cache.cacheSleepTime) { // stop refreshing cache if there's not requests in the last 2h
-                this.cacheData()
-            }
-        }, Cache.cacheLifetime);
-    }
-
-
-    private async cacheData() {
-        const data = await PeliculaDAO.getAll();
-        controllerDebugger("updating cache")
-        if (data) {
-            this.cache["/get-allGET"] = {
-                data: data,
-                time: new Date()
-            }
-        }
     }
 
     public routes(): Router {
         //routes
-        this.router.get("/", CacheDelay, async (req: Request, res: Response) => {
+        this.router.get("/", async (req: Request, res: Response) => {
             res.status(200).send({
                 endpoints: {
                     getAll: "GET /get-all: get all peliculas",
@@ -50,15 +29,11 @@ export class PeliculaController extends PeliculaDAO {
         })
 
         // //get all
-        this.router.get("/get-all", async (req: Request, res: Response) => {
+        this.router.get("/get-all", CheckCache, async (req: Request, res: Response) => {
             try {
-                const cachekey = req.path + req.method
-                this.lastRequest = new Date()
-                const data = this.cache[cachekey].data;
-                // from cache
-                setTimeout(() => { // prevent connection rejection
-                    res.status(200).send(data);
-                }, Cache.cache_delay);
+                const data = await PeliculaDAO.getAll();
+                await RedisClient.set(req.body.cacheKey, JSON.stringify(data), { EX: 60 });
+                res.status(200).send(data);
             } catch (error: any) {
                 res.status(404).send({
                     message: error.message,
@@ -67,26 +42,12 @@ export class PeliculaController extends PeliculaDAO {
         });
 
         // get by id
-        this.router.get("/:id", async (req: Request, res: Response) => {
+        this.router.get("/:id", CheckCache, async (req: Request, res: Response) => {
             try {
-                const cachekey = req.path + req.method
-                if (this.cache[cachekey] && getDeltaTime(this.cache[cachekey].time) < Cache.cacheLifetime) {
-                    const data = this.cache[cachekey].data;
-                    // from cache
-                    setTimeout(() => { // prevent connection rejection
-                        res.status(200).send(data);
-                    }, Cache.cache_delay);
-                } else {
-                    const { id } = req.params;
-                    const data = await PeliculaDAO.getById(parseInt(id));
-                    if (data) {
-                        this.cache[cachekey] = {
-                            data: data,
-                            time: new Date()
-                        }
-                    }
-                    res.status(200).send(data);
-                }
+                const { id } = req.params;
+                const data = await PeliculaDAO.getById(parseInt(id));
+                await RedisClient.set(req.body.cacheKey, JSON.stringify(data), { EX: 60 });
+                res.status(200).send(data);
             } catch (error: any) {
                 res.status(404).send({
                     message: error.message,

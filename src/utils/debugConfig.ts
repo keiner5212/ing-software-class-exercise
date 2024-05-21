@@ -32,10 +32,13 @@ const errorDebugger = Debug('error');
 //dao debugger
 const daoDebugger = Debug('dao');
 
+// redis debugger
+const redisDebugger = Debug('redis');
+
 
 export {
     serverDebugger, controllerDebugger,
     dbDebugger, authDebugger, utilsDebugger,
     repositoryDebugger, entityDebugger, middlewareDebugger,
-    errorDebugger, daoDebugger
+    errorDebugger, daoDebugger, redisDebugger
 };
