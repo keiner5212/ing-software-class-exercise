@@ -1,0 +1,34 @@
+version: '3.5'
+
+services:
+  redis:
+    image: redis
+    restart: always
+    
+    command: ["redis-server", "/etc/redis/redis.conf"]
+    volumes:
+      - ./users.acl:/etc/redis/users.acl
+      - ./redis.conf:/etc/redis/redis.conf
+    ports:
+      - 6379:6379
+  
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: root
+      POSTGRES_PASSWORD: 0
+    volumes:
+      - postgres_local_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+
+volumes:
+  postgres_local_data:
+    external: false
+    name: postgres_local_data
+
+# Database Access Credentials (replace with your actual credentials or use the default)
+# u: root
+# pw: 0
+
