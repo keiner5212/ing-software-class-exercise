@@ -39,8 +39,8 @@ export class App {
 			res.json({
 				message: "Welcome to the App",
 				endpoints: {
-					categoria: this.prefix + "/categoria",
-					pelicula: this.prefix + "/pelicula",
+					categoria: this.prefix + "/category",
+					pelicula: this.prefix + "/movie",
 				}
 			});
 		});
@@ -48,8 +48,8 @@ export class App {
 
 	private controllerRoutes() {
 		// Controllers ROUTES
-		this.app.use(this.prefix + "/categoria", new CategoriaController().routes());
-		this.app.use(this.prefix + "/pelicula", new PeliculaController().routes());
+		this.app.use(this.prefix + "/category", new CategoriaController().routes());
+		this.app.use(this.prefix + "/movie", new PeliculaController().routes());
 
 	}
 

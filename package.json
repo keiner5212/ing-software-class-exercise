@@ -8,7 +8,8 @@
     "start": "ts-node ./src/server.ts",
     "build": "tsc",
     "lint": "eslint . --ext .ts",
-    "test": "jest --watchAll"
+    "test": "jest --watchAll",
+    "seeder": "ts-node ./test/seeder.ts"
   },
   "keywords": [],
   "author": "",
@@ -25,6 +26,7 @@
     "ts-node": "^10.9.2"
   },
   "devDependencies": {
+    "@faker-js/faker": "^8.4.1",
     "@jest/globals": "^29.7.0",
     "@types/compression": "^1.7.5",
     "@types/cors": "^2.8.17",
