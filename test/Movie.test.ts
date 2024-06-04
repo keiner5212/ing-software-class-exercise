@@ -5,7 +5,7 @@ import { PeliculaDAO } from '../src/dao/PeliculaDAO';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 class MovieTest extends PeliculaDAO {
     public static getAll() {
-        return super.getAll();
+        return super.getAll(1);
     }
 
     public static getById(id: number) {
@@ -31,7 +31,7 @@ describe('get all the movies return an array', () => {
     })
 })
 
-describe('get a movie by id', () => {
+describe('get a movie by  id', () => {
     test('should return a movie', async () => {
         const movie = await MovieTest.getById(1);
         expect(movie).toBeInstanceOf(Object);

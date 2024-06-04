@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import pgPromise from "pg-promise";
 import { PeliculaRepository } from "../repositories/PeliculasRepository";
 import { dbDebugger } from "../utils/debugConfig";
+import { Pagination } from "../constants/pagination";
 
 dotenv.config();
 
@@ -12,9 +13,12 @@ const db = dbInstance.getDb();
 
 export class PeliculaDAO {
 
-    protected static async getAll() {
+    protected static async getAll(page: number) {
         return await db.task(async (t: pgPromise.IDatabase<any>) => {
-            return await t.manyOrNone(PeliculaRepository.GET_ALL);
+            return await t.manyOrNone(PeliculaRepository.GET_ALL, [
+                (page - 1) * Pagination.defaultLimit,
+                Pagination.defaultLimit,
+            ]);
         }).then((data) => {
             if (data && data.length > 0) {
                 return data;
@@ -101,6 +105,21 @@ export class PeliculaDAO {
         return await db.task(async (t: pgPromise.IDatabase<any>) => {
             return await t.oneOrNone(PeliculaRepository.DELETE, [id_pelicula]);
         }).then((data) => {
+            if (data) {
+                return data;
+            }
+            throw new Error("Error updating data");
+        }).catch((err) => {
+            console.log(err);
+            throw err;
+        })
+    }
+
+    protected static async deleteALL() {
+        return await db.task(async (t: pgPromise.IDatabase<any>) => {
+            return await t.oneOrNone(PeliculaRepository.DELETE_ALL);
+        }).then((data) => {
+            console.log("All data was deleted");
             if (data) {
                 return data;
             }

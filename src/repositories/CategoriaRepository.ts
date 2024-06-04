@@ -3,7 +3,7 @@ import { peliculaTableName } from "./PeliculasRepository";
 export const categoryTableName = "categoria";
 
 export const CategoriaRepository = {
-	GET_ALL: `SELECT id_categoria, nombre_categoria FROM ${categoryTableName} ORDER BY id_categoria ASC;`,
+	GET_ALL: `SELECT id_categoria, nombre_categoria FROM ${categoryTableName} ORDER BY id_categoria ASC OFFSET $1 LIMIT $2;`,
 	GET_BY_ID: `SELECT id_categoria, nombre_categoria FROM ${categoryTableName} WHERE id_categoria = $1;`,
 	ADD: `INSERT INTO  ${categoryTableName}(nombre_categoria) VALUES($1) RETURNING id_categoria;`,
 	UPDATE: `UPDATE  ${categoryTableName} SET nombre_categoria = $1 WHERE id_categoria = $2 RETURNING id_categoria;`,
